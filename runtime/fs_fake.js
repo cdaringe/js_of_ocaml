@@ -25,6 +25,10 @@
 //Requires: caml_is_ml_bytes, caml_is_ml_string
 //Requires: caml_named_value, caml_raise_with_args, caml_named_values
 //Requires: make_unix_err_args
+function MlFakeLink(path) {
+  this.link_target = path;
+}
+
 function MlFakeDevice (root, f) {
   this.content={};
   this.root = root;
@@ -59,7 +63,10 @@ MlFakeDevice.prototype.exists = function(name) {
   if(name == "") return 1;
   // Check if a directory exists
   var name_slash = this.slash(name);
-  if(this.content[name_slash]) return 1;
+  if(this.content[name_slash]) {
+    if(this.content[name_slash].link_target) return this.exists(this.content[name_slash].link_target);
+    return 1;
+  }
   // Check if a file exists
   this.lookup(name);
   return this.content[name]?1:0;
@@ -159,6 +166,7 @@ MlFakeDevice.prototype.open = function(name, f) {
     caml_raise_sys_error(this.nm(name) + " : flags Open_text and Open_binary are not compatible");
   this.lookup(name);
   if (this.content[name]) {
+    if(this.content[name].link_target) return this.open(name, f);
     if (this.is_dir(name)) caml_raise_sys_error(this.nm(name) + " : is a directory");
     if (f.create && f.excl) caml_raise_sys_error(this.nm(name) + " : file already exists");
     var file = this.content[name];
@@ -195,6 +203,39 @@ MlFakeDevice.prototype.register= function (name,content){
   else caml_raise_sys_error(this.nm(name) + " : registering file with invalid content type");
 }
 
+MlFakeDevice.prototype.symlink = function(to_dir, target, path, raise_unix) {
+    var unix_error = raise_unix && caml_named_value('Unix.Unix_error');
+    if(this.exists(path)) {
+	if (unix_error) {
+	    caml_raise_with_args(unix_error, make_unix_err_args("EEXIST", "symlink", this.nm(path)));
+	}
+	else {
+	    caml_raise_sys_error(path + ": File exists");
+	}
+    }
+    this.content[path] = new MlFakeLink(target);
+}
+MlFakeDevice.prototype.readlink= function(name, raise_unix){
+    var unix_error = raise_unix && caml_named_value('Unix.Unix_error');
+    if(!this.content[name]){
+      if(unix_error) {
+	  caml_raise_with_args(unix_error, make_unix_err_args("ENOENT", "readlink", this.nm(name)));
+      }
+      else {
+	  caml_raise_sys_error(name + ": No such file or directory");
+      }
+  }
+    if(!this.content[name].link_target){
+      if(unix_error) {
+	  caml_raise_with_args(unix_error, make_unix_err_args("EINVAL", "readlink", this.nm(name)));
+      }
+      else {
+	  caml_raise_sys_error(name + ": not a symlink");
+      }
+    }
+    return (this.content[name].link_target);
+
+}
 MlFakeDevice.prototype.constructor = MlFakeDevice
 
 //Provides: MlFakeFile
