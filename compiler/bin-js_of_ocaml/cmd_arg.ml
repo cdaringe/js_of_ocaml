@@ -25,6 +25,7 @@ type t =
   { common : Jsoo_cmdline.Arg.t
   ; (* compile option *)
     profile : Driver.profile option
+  ; esm : bool
   ; source_map : (string option * Source_map.t) option
   ; runtime_files : string list
   ; no_runtime : bool
@@ -78,6 +79,10 @@ let options =
     let doc = "Set optimization profile : [$(docv)]." in
     let profile = List.map Driver.profiles ~f:(fun (i, p) -> string_of_int i, p) in
     Arg.(value & opt (some (enum profile)) None & info [ "opt" ] ~docv:"NUM" ~doc)
+  in
+  let esm =
+    let doc = "Transpile cmo modules to ESM modules." in
+    Arg.(value & flag & info [ "esm" ] ~doc)
   in
   let noruntime =
     let doc = "Do not include the standard runtime." in
@@ -209,6 +214,7 @@ let options =
       fs_external
       nocmis
       profile
+      esm
       no_runtime
       runtime_only
       no_sourcemap
@@ -280,6 +286,7 @@ let options =
       { common
       ; params
       ; profile
+      ; esm
       ; static_env
       ; wrap_with_fun
       ; dynlink
@@ -317,6 +324,7 @@ let options =
       $ fs_external
       $ nocmis
       $ profile
+      $ esm
       $ noruntime
       $ runtime_only
       $ no_sourcemap
@@ -494,6 +502,7 @@ let options_runtime_only =
       { common
       ; params
       ; profile = None
+      ; esm = true
       ; static_env
       ; wrap_with_fun
       ; dynlink = false

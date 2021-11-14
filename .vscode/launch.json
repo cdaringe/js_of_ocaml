@@ -1,0 +1,41 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "esm_of_ocaml.bc",
+      "type": "ocamlearlybird",
+      "request": "launch",
+      "console": "integratedTerminal",
+      "stopOnEntry": true,
+      "yieldSteps": 4096,
+      "arguments": ["print-standard-runtime"],
+      "program": "${workspaceFolder}/_build/default/compiler/bin-esm_of_ocaml/esm_of_ocaml.bc",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "build-runtime",
+      "type": "ocamlearlybird",
+      "request": "launch",
+      "console": "integratedTerminal",
+      "stopOnEntry": true,
+      "yieldSteps": 4096,
+      "arguments": ["build-runtime", "-o", "esm_ml/jsoo/runtime"],
+      "program": "${workspaceFolder}/_build/default/compiler/bin-js_of_ocaml/js_of_ocaml.bc",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "cmo => esm",
+      "type": "ocamlearlybird",
+      "request": "launch",
+      "console": "integratedTerminal",
+      "stopOnEntry": true,
+      "yieldSteps": 4096,
+      "arguments": ["--esm", "--pretty", "--debug-info", "esm_ml/dummy_a.cmo"],
+      "program": "${workspaceFolder}/_build/default/compiler/bin-js_of_ocaml/js_of_ocaml.bc",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

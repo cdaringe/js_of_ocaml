@@ -60,3 +60,5 @@ toplevel/examples/lwt_toplevel_bin/test_dynlink.js
 toplevel/examples/lwt_toplevel_bin/test_dynlink.cmi.js
 toplevel/examples/lwt_toplevel_bin/toplevel.js
 toplevel/examples/lwt_toplevel_bin/eval.js
+
+esm_ml

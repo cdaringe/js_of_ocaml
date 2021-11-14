@@ -2501,6 +2501,7 @@ let from_compilation_units ~includes:_ ~toplevel ~debug_data l =
   let prog = parse_bytecode code globals debug_data in
   let gdata = Var.fresh_n "global_data" in
   let body =
+    (* what's really goin on here *)
     Array.fold_right_i globals.vars ~init:[] ~f:(fun i var l ->
         match var with
         | Some x when globals.is_const.(i) -> (

@@ -140,9 +140,9 @@ let round2 = flow +> specialize' +> eval +> deadcode +> o1
 
 let o3 = loop 10 "tailcall+inline" round1 1 +> loop 10 "flow" round2 1 +> print
 
-let generate d ~exported_runtime (p, live_vars) =
+let generate d ~exported_runtime ~esm (p, live_vars) =
   if times () then Format.eprintf "Start Generation...@.";
-  Generate.f p ~exported_runtime ~live_vars d
+  Generate.f p ~exported_runtime ~esm ~live_vars d
 
 let header formatter ~custom_header =
   (match custom_header with
@@ -326,14 +326,17 @@ let coloring js =
   if times () then Format.eprintf "  coloring: %a@." Timer.print t;
   js
 
-let output formatter ~standalone ~custom_header ?source_map () js =
+let maybe_coloring ~esm js = if esm then js else coloring js
+
+let output formatter ~standalone ~esm ~custom_header ?source_map () js =
   let t = Timer.make () in
   if times () then Format.eprintf "Start Writing file...@.";
   if standalone then header ~custom_header formatter;
-  Js_output.program formatter ?source_map js;
+  Js_output.program formatter ~esm ?source_map js;
   if times () then Format.eprintf "  write: %a@." Timer.print t
 
-let pack ~global { Linker.runtime_code = js; always_required_codes } =
+let pack ~global ~esm linker_output =
+  let { Linker.runtime_code = js; always_required_codes } = linker_output in
   let module J = Javascript in
   let t = Timer.make () in
   if times () then Format.eprintf "Start Flagizing js...@.";
@@ -403,8 +406,9 @@ let pack ~global { Linker.runtime_code = js; always_required_codes } =
       ~f:(fun { Linker.program; filename = _; requires = _ } ->
         wrap_in_iifa ~can_use_strict:false program)
   in
-  let runtime_js = wrap_in_iifa ~can_use_strict:true js in
-  let js = List.flatten always_required_js @ runtime_js in
+  let runtime_js = if esm then js else wrap_in_iifa ~can_use_strict:true js in
+  (* @todo maybe scrap always_required if esm? rather, replace with persistent imports *)
+  let js = if esm then runtime_js else List.flatten always_required_js @ runtime_js in
   (* post pack optim *)
   let t3 = Timer.make () in
   let js = (new Js_traverse.simpl)#program js in
@@ -412,8 +416,9 @@ let pack ~global { Linker.runtime_code = js; always_required_codes } =
   let t4 = Timer.make () in
   let js = (new Js_traverse.clean)#program js in
   if times () then Format.eprintf "    clean: %a@." Timer.print t4;
+  let is_using_short_vars = (not esm) && Config.Flag.shortvar () in
   let js =
-    if Config.Flag.shortvar ()
+    if is_using_short_vars
     then (
       let t5 = Timer.make () in
       let keep = StringSet.empty in
@@ -442,21 +447,23 @@ let f
     ?(linkall = false)
     ?source_map
     ?custom_header
+    ?(esm = false)
     formatter
     d =
   let exported_runtime = not standalone in
   let linkall = linkall || dynlink in
+  let maybe_closure js = if esm then js else Generate_closure.f js in
   configure formatter
   +> specialize_js_once
   +> profile
-  +> Generate_closure.f
+  +> maybe_closure
   +> deadcode'
-  +> generate d ~exported_runtime
+  +> generate d ~exported_runtime ~esm
   +> link ~standalone ~linkall ~export_runtime:dynlink
-  +> pack ~global
-  +> coloring
+  +> pack ~esm ~global
+  +> maybe_coloring ~esm
   +> check_js
-  +> output formatter ~standalone ~custom_header ?source_map ()
+  +> output formatter ~standalone ~custom_header ~esm ?source_map ()
 
 let from_string prims s formatter =
   let p, d = Parse_bytecode.from_string prims s in

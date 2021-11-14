@@ -32,6 +32,7 @@ module Debug : sig
   val paths : t -> units:StringSet.t -> StringSet.t
 end
 
+(** Parsed bytecode *)
 type one =
   { code : Code.program
   ; cmis : StringSet.t

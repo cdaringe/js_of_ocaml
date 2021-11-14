@@ -68,6 +68,8 @@ val link : Javascript.program -> state -> output
 
 val get_provided : unit -> StringSet.t
 
+val get_provided_by_runtime_module : unit -> (string * string) list
+
 val all : state -> string list
 
 val origin : name:string -> string option

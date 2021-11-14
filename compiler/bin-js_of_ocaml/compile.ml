@@ -31,6 +31,7 @@ let gen_unit_filename dir u =
 let run
     { Cmd_arg.common
     ; profile
+    ; esm
     ; source_map
     ; runtime_files
     ; no_runtime
@@ -143,6 +144,17 @@ let run
   let output (one : Parse_bytecode.one) ~standalone output_file =
     check_debug one.debug;
     let init_pseudo_fs = fs_external && standalone in
+    let driver =
+      Driver.f
+        ~standalone
+        ?profile
+        ~linkall
+        ~global
+        ~dynlink
+        ?source_map
+        ?custom_header
+        ~esm
+    in
     (match output_file with
     | `Stdout ->
         let instr =
@@ -154,17 +166,7 @@ let run
         in
         let code = Code.prepend one.code instr in
         let fmt = Pretty_print.to_out_channel stdout in
-        Driver.f
-          ~standalone
-          ?profile
-          ~linkall
-          ~global
-          ~dynlink
-          ?source_map
-          ?custom_header
-          fmt
-          one.debug
-          code
+        driver fmt one.debug code
     | `Name file ->
         let fs_instr1, fs_instr2 =
           match fs_output with
@@ -181,17 +183,7 @@ let run
             in
             let code = Code.prepend one.code instr in
             let fmt = Pretty_print.to_out_channel chan in
-            Driver.f
-              ~standalone
-              ?profile
-              ~linkall
-              ~global
-              ~dynlink
-              ?source_map
-              ?custom_header
-              fmt
-              one.debug
-              code);
+            driver fmt one.debug code);
         Option.iter fs_output ~f:(fun file ->
             Filename.gen_file file (fun chan ->
                 let instr = fs_instr2 in

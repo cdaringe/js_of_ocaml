@@ -416,6 +416,15 @@ let add_file filename = List.iter (parse_file filename) ~f:(load_fragment ~filen
 let get_provided () =
   Hashtbl.fold (fun k _ acc -> StringSet.add k acc) provided StringSet.empty
 
+let get_provided_by_runtime_module () =
+  Hashtbl.fold
+    (fun name (_, pio, _) acc ->
+      match pio with
+      | Some { Parse_info.src = Some src; _ } -> (src, name) :: acc
+      | _ -> acc)
+    provided
+    []
+
 let check_deps () =
   let provided = get_provided () in
   Hashtbl.iter

@@ -1126,7 +1126,8 @@ struct
     PP.string f "}";
     PP.end_group f
 
-  and source_element f ?skip_last_semi se =
+  and source_element f ?(esm=false) ?skip_last_semi se =
+    let _esm = esm in
     match se with
     | Statement s, loc -> statement f ?last:skip_last_semi (s, loc)
     | Function_declaration (i, l, b, loc'), loc ->
@@ -1154,16 +1155,16 @@ struct
         PP.end_group f;
         PP.end_group f
 
-  and source_elements f ?skip_last_semi se =
+  and source_elements f ?(esm=false) ?skip_last_semi se =
     match se with
     | [] -> ()
-    | [ s ] -> source_element f ?skip_last_semi s
+    | [ s ] -> source_element f ~esm ?skip_last_semi s
     | s :: r ->
-        source_element f s;
+        source_element ~esm f s;
         PP.break f;
-        source_elements f ?skip_last_semi r
+        source_elements f ~esm ?skip_last_semi r
 
-  and program f s = source_elements f s
+  and program ?(esm=false) f s = source_elements ~esm f s
 end
 
 let part_of_ident =
@@ -1189,7 +1190,8 @@ let need_space a b =
       true
   | _, _ -> false
 
-let program f ?source_map p =
+let program f ?(esm = false) ?source_map p =
+  let _esm = esm in
   let smo =
     match source_map with
     | None -> None
@@ -1200,7 +1202,7 @@ let program f ?source_map p =
   end) in
   PP.set_needed_space_function f need_space;
   PP.start_group f 0;
-  O.program f p;
+  O.program ~esm f p;
   PP.end_group f;
   PP.newline f;
   (match source_map with

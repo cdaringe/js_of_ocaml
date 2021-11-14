@@ -28,6 +28,7 @@ val f :
   -> ?linkall:bool
   -> ?source_map:string option * Source_map.t
   -> ?custom_header:string
+  -> ?esm:bool
   -> Pretty_print.t
   -> Parse_bytecode.Debug.t
   -> Code.program

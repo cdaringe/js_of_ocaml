@@ -121,8 +121,10 @@ module Var : sig
   end
 end
 
+(* cont...inuation? *)
 type cont = Addr.t * Var.t list
 
+(** not primitive, so what ...is this. we have operators, mainly *)
 type prim =
   | Vectlength
   | Array_get

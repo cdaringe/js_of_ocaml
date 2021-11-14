@@ -1015,7 +1015,7 @@ let rec translate_expr ctx queue loc _x e level : _ * J.statement_list =
       (Mlvalue.Block.field cx n, or_p px mutable_p, queue), []
   | Closure (args, ((pc, _) as cont)) ->
       let loc = source_location ctx ~after:true pc in
-      let clo = compile_closure ctx cont in
+      let clo = compile_closure ~drop_return:false ctx cont in
       let clo =
         match clo with
         | (st, J.N) :: rem -> (st, J.U) :: rem
@@ -1857,7 +1857,7 @@ and compile_branch_selection pc interm =
     else (J.Expression_statement (EBin (Eq, EVar (J.V x), int i)), J.N) :: branch
   with Not_found -> []
 
-and compile_closure ctx (pc, args) =
+and compile_closure ~drop_return ctx (pc, args) =
   let st =
     { visited_blocks = Addr.Set.empty
     ; loops = Addr.Set.empty
@@ -1883,6 +1883,7 @@ and compile_closure ctx (pc, args) =
     Format.eprintf "Some blocks not compiled %s!@." (string_of_set missing);
     assert false);
   if debug () then Format.eprintf "}@]@ ";
+  let res = if drop_return then List.(res |> rev |> tl |> rev) else res in 
   List.map res ~f:(fun (st, loc) -> J.Statement st, loc)
 
 let generate_shared_value ctx =
@@ -1914,19 +1915,19 @@ let generate_shared_value ctx =
     strings :: applies
   else [ strings ]
 
-let compile_program ctx pc =
-  let res = compile_closure ctx (pc, []) in
+let compile_program ~esm ctx pc =
+  let res = compile_closure ~drop_return:esm ctx (pc, []) in
   let res = generate_shared_value ctx @ res in
   if debug () then Format.eprintf "@.@.";
   res
 
-let f (p : Code.program) ~exported_runtime ~live_vars debug =
+let f (p : Code.program) ~exported_runtime ~esm ~live_vars debug =
   let t' = Timer.make () in
   let share = Share.get ~alias_prims:exported_runtime p in
   let exported_runtime =
     if exported_runtime then Some (Code.Var.fresh_n "runtime") else None
   in
   let ctx = Ctx.initial ~exported_runtime p.blocks live_vars share debug in
-  let p = compile_program ctx p.start in
+  let p = compile_program ~esm ctx p.start in
   if times () then Format.eprintf "  code gen.: %a@." Timer.print t';
   p

@@ -20,4 +20,5 @@
 
 val f : Flow.info -> Code.program -> Code.program
 
+(** Describe what this does *)
 val f_once : Code.program -> Code.program
